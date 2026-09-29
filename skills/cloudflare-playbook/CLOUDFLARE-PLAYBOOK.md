@@ -353,6 +353,18 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   To test: request `/%2561<prefix>`, `/%61<prefix>`, a forged token, and a
   POST through the encoded path against a *production build* (dev mode
   skips the check).
+- **Renaming the Access team changes the JWT issuer** (the team domain,
+  `https://<team>.cloudflareaccess.com`). Update the app's team-domain
+  config (the `iss` it expects and the certs URL) and any CSP `form-action`
+  that allows the login domain, and deploy right away — until then the
+  in-app check rejects every login. The application's AUD tag and the
+  signing keys stay the same. **Existing browser sessions still fail
+  afterwards**: their tokens carry the *old* issuer, Access keeps honoring
+  them at the edge, so the app answers "Forbidden" even with the new
+  config deployed — and `/cdn-cgi/access/logout` breaks for them too
+  ("Unable to find your Access organization"), because it looks up the
+  old team. Clearing the site's cookies (or a private window) and logging
+  in again fixes it; otherwise it lasts until the session expires.
 - **Set `preview_urls: false` alongside `workers_dev: false`** — a
   `<version>-<name>.<subdomain>.workers.dev` preview hostname would sit
   outside a hostname-scoped Access policy just like `workers.dev` would.
