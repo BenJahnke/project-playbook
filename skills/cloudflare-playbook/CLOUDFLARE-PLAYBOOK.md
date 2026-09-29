@@ -27,7 +27,8 @@ admin bypass.
       ([Cloudflare Access](#cloudflare-access))
 
 **Browser**
-- [ ] Astro `security.csp` on; no inline handlers/styles; middleware
+- [ ] Astro `security.csp` on; no inline handlers/styles or `define:vars`
+      scripts; middleware
       *merges* `frame-ancestors` into the SSR CSP header; `public/_headers`
       covers static assets
       ([Security headers & CSP](#security-headers--csp-astro-on-workers))
@@ -466,6 +467,18 @@ listing a prefix only gives back keys, alphabetically).
 - **Consequences to design for**: inline event handlers (`onsubmit="…"`)
   and `style="…"` attributes are blocked — move them into `data-`
   attributes handled by the component's `<script>`.
+- **Never use `define:vars` on a script.** It makes Astro treat the script
+  as `is:inline`, and `is:inline` scripts get no hash in the policy — the
+  browser blocks them with nothing visible on the page, and any form the
+  script was intercepting quietly falls back to a full-page POST (tested
+  on Astro 7, 2026-09-29: a fetch-based reorder UI started reloading and
+  jumping to the top). Pass server values through a `data-` attribute to
+  a normal processed `<script>` instead. The static manifest check below
+  catches this on pages a preview can't reach.
+- **`scriptDirective.resources` / `styleDirective.resources` replace the
+  defaults rather than adding to them** — listing only an external origin
+  (e.g. a font stylesheet host) drops `'self'` and blocks the site's own
+  bundled CSS/JS under `/_astro/`. List `'self'` explicitly alongside it.
 - **`form-action` also governs redirect targets of a form POST.** Behind
   Cloudflare Access, an expired session redirects a POST to
   `https://<team>.cloudflareaccess.com` — allow that origin, or saves fail
@@ -549,6 +562,13 @@ credentials in reach. Layers that worked here:
   as-is** — it's cut from the target branch when the bot ran and can be
   missing later commits, which makes unrelated regressions look like the
   upgrade's fault.
+- **Merge Dependabot PRs one at a time, not combined locally.** Merging
+  two that both change the lockfile forces npm to re-resolve the tree, and
+  `min-release-age` hides a security PR's too-new versions from that
+  resolution — it surfaces as a misleading `ERESOLVE` ("Found:
+  <pkg>@undefined") or `ETARGET`. Merge one and let Dependabot rebase the
+  other; each PR's own lockfile installs fine, since `npm ci` ignores
+  `min-release-age`.
 - **Block non-registry sources**: `allow-git=none`, `allow-remote=none`,
   once you've confirmed the lockfile has none.
 - **Keep `npx` out of routine use.** `npm run <script>` only executes
