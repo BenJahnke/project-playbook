@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(npx *)",
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "Bash(npm in *)",
+      "Bash(npm add *)",
+      "Bash(npm it *)",
+      "Bash(npm exec *)",
+      "Bash(npm x *)",
+      "Bash(npm update *)",
+      "Bash(npm up *)",
+      "Bash(npm upgrade *)",
+      "Bash(npm init *)",
+      "Bash(npm create *)",
+      "Bash(pnpm dlx *)",
+      "Bash(pnpx *)",
+      "Bash(yarn dlx *)",
+      "Bash(bunx *)",
+      "Bash(bun x *)",
+      "PowerShell(npx *)",
+      "PowerShell(npx.cmd *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm i *)",
+      "PowerShell(npm in *)",
+      "PowerShell(npm add *)",
+      "PowerShell(npm it *)",
+      "PowerShell(npm exec *)",
+      "PowerShell(npm x *)",
+      "PowerShell(npm update *)",
+      "PowerShell(npm up *)",
+      "PowerShell(npm upgrade *)",
+      "PowerShell(npm init *)",
+      "PowerShell(npm create *)",
+      "PowerShell(pnpm dlx *)",
+      "PowerShell(pnpx *)",
+      "PowerShell(yarn dlx *)",
+      "PowerShell(bunx *)",
+      "PowerShell(bun x *)"
+    ]
+  }
+}

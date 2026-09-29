@@ -1,0 +1,10 @@
+# Static assets (prerendered pages, /_astro/*, favicons) are served without
+# running the Worker, so security headers set in middleware never reach
+# them — keep this set in sync with the middleware's list. See the Cloudflare
+# playbook's "Security headers & CSP" section.
+/*
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000

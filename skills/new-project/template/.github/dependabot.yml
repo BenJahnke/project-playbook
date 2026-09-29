@@ -1,0 +1,27 @@
+# Version-update PRs target `develop`, never `main` (merging to main is the
+# deploy). The 14-day cooldown matches .npmrc's min-release-age: a release
+# has to survive two weeks in the wild — long enough for most hijacked
+# versions to be caught and pulled — before a PR proposes it. Security
+# updates skip the cooldown (and target the default branch) by design.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Keeps the SHA-pinned actions in deploy.yml current (updates the SHA and
+  # its `# vN` comment together).
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14

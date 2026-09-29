@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch: {}
+
+# Prevent two deploys from overlapping if pushes land close together.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Not secret — see the Cloudflare playbook's "CI/CD & branching" section.
+  CLOUDFLARE_ACCOUNT_ID: '{{CLOUDFLARE_ACCOUNT_ID}}'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions pinned to commit SHAs, not tags — a tag can be repointed at
+      # different code (the tj-actions/changed-files compromise, 2025).
+      # Dependabot keeps these current.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          # Exact pin: Node 24.19.0 bundles npm 11.17.0, which enforces the
+          # .npmrc supply-chain policy. Older npm silently ignores it.
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Require an npm that enforces .npmrc policy
+        run: |
+          node -e '
+            const [major, minor] = process.argv[1].split(".").map(Number);
+            if (major < 11 || (major === 11 && minor < 17)) {
+              console.error(`npm ${process.argv[1]} would ignore strict-allow-scripts / min-release-age`);
+              process.exit(1);
+            }
+            console.log(`npm ${process.argv[1]} OK`);
+          ' "$(npm --version)"
+
+      - run: npm ci
+
+      # Fails if any installed package lacks a valid npm registry signature
+      # or has an invalid provenance attestation.
+      - name: Verify registry signatures
+        run: npm audit signatures
+
+      - name: Type-check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      # Runs before deploy so schema changes land before the code that
+      # depends on them. wrangler auto-confirms the "continue?" prompt in
+      # non-interactive contexts like this one. Delete this step if the
+      # project has no D1 database.
+      - name: Apply D1 migrations (remote)
+        run: npm run db:migrate:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
