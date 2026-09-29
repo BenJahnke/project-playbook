@@ -12,6 +12,14 @@ names, emails, or incident details that point at one project. Use
 `example.com`-style placeholders. "Learned the hard way on a previous
 project" is fine; naming the project isn't.
 
+**Commits here use the owner's GitHub noreply email**, not their real one
+— commit metadata is public too. It's set as a repo-local git config, which
+lives in the clone rather than the repo, so after a fresh clone run
+`git config user.email "$(git log -1 --format=%ae)"` (copying the address
+the existing commits use) before committing, and check
+`git log -1 --format='%ae %ce'` before pushing. See the playbook's "GitHub
+repository security settings" section.
+
 ## Skills
 
 - **Each skill is self-contained in its folder under `skills/`.** They're

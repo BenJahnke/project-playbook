@@ -77,5 +77,9 @@ Finish with:
     `admin` and `admin/*` if there's an admin area ("Cloudflare Access").
   - Their user-level `~/.npmrc` should have `min-release-age` too, so
     `npx` outside the project is covered ("Supply chain").
+  - If the repo is or will be **public**: set the repo-local git email to
+    their GitHub noreply address before the first commit, so their real
+    email never lands in public history ("GitHub repository security
+    settings"). Offer to run the `git config` for them.
 - If the project will handle anything security-relevant, point them at the
   playbook's "Security checklist for a new project".

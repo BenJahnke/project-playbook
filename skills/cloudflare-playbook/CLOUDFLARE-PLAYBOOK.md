@@ -598,6 +598,20 @@ Recommended setup, all free on private repos:
 - **Code scanning (CodeQL)** is free for public repos, but on private
   repos needs GitHub Advanced Security (organization-owned only). A
   `SECURITY.md` reporting policy matters for public repos, not private ones.
+- **Public repos: commit with your GitHub noreply email, not your real
+  one.** Every commit's author and committer email is visible to anyone in
+  a public repo's history, and removing it later means rewriting history.
+  Before the first commit, run `git config user.email
+  "<id>+<username>@users.noreply.github.com"` inside that repo (find the
+  address under GitHub → Settings → Emails, or copy it from the initial
+  commit GitHub made when creating the repo). It's a per-repo setting that
+  overrides your global one, so private repos are unaffected — but it
+  lives in the clone, not the repo, so repeat it after cloning on another
+  machine. Check with `git log -1 --format='%ae %ce'` before the first
+  push; if a commit is already made but unpushed, `git commit --amend
+  --no-edit --reset-author` fixes it. Turning on "Keep my email addresses
+  private" and "Block command line pushes that expose my email" (same
+  settings page) makes GitHub reject a push that would leak it.
 - **Handy PR comments**: `@dependabot rebase`, `@dependabot recreate`,
   `@dependabot ignore this major version`, `@dependabot ignore this
   dependency`. Run history and a manual "Check for updates" button live
