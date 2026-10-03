@@ -32,9 +32,34 @@ admin bypass.
       *merges* `frame-ancestors` into the SSR CSP header; `public/_headers`
       covers static assets
       ([Security headers & CSP](#security-headers--csp-astro-on-workers))
-- [ ] URLs from data in `href`/`src` are scheme-checked (`https:` only)
 - [ ] Browser-tested against a production build, asserting each page
       actually *has* a CSP before trusting "zero violations"
+
+**Injection & input** ([Injection & input handling](#injection--input-handling))
+- [ ] No `set:html`, and no `innerHTML`-family call with data; client
+      scripts build DOM with `textContent`
+- [ ] HTML built outside a template (emails) goes through an
+      auto-escaping tagged template, enforced by a branded type the sender
+      requires; CR/LF stripped from header values like subjects
+- [ ] Query builder only; nothing user-supplied in `sql.raw()` or spliced
+      into a `sql` template outside its `${}` parameters
+- [ ] Every route parses input through an explicit schema: enums, real
+      date formats, length caps on public free text; server-owned fields
+      set explicitly, never spread from the request
+- [ ] No `Location` built from raw input; any client-supplied redirect
+      target allowlisted to a same-site path pattern (not just
+      `startsWith("/")`)
+- [ ] URLs from data in `href`/`src` are built from IDs/slugs, or
+      scheme-checked (`https:` only)
+- [ ] Query-string messages shown only on same-origin navigations
+      (`Sec-Fetch-Site`)
+- [ ] `security.checkOrigin` left on; JSON endpoints require
+      `Content-Type: application/json`
+- [ ] Public file routes serve only the key shape the app writes, with
+      `nosniff`
+- [ ] A public form that emails the submitted address has bot protection
+      or a rate limit before launch
+- [ ] Workflows never put `${{ github.event.* }}` straight into `run:`
 
 **Data & photos**
 - [ ] Secrets as Worker secrets, never `vars`
@@ -391,6 +416,13 @@ listing a prefix only gives back keys, alphabetically).
   .transform({ width: N }).output({ format: "image/jpeg", quality: 85 })`
   before writing to R2 — never store the raw upload. Do this server-side;
   never rely on the client having stripped anything.
+- **Buffer the transformed output before `R2.put()`**: `await new
+  Response(transformed.image()).arrayBuffer()`, not the stream itself.
+  R2 rejects a `ReadableStream` with no known length ("Provided readable
+  stream must have a known length"), and the Images output stream doesn't
+  have one. Passing the stream straight through worked for a while on one
+  project, then started failing after a routine workerd bump (2026-10-03),
+  so every upload 500'd. Don't rely on it working.
 - **Metadata (EXIF — GPS location, device, description, copyright — and
   XMP) must not survive** into anything stored or served: a phone photo
   can pin down a restaurant table or someone's home. Facts worth knowing:
@@ -437,6 +469,14 @@ listing a prefix only gives back keys, alphabetically).
   cache on every hit. Snap the requested width up to the next size the app
   actually renders (e.g. thumbnail / card / lightbox) and key the cache on
   `path + ?w=<snapped width>` only.
+- **Validate the key, too.** A public `GET /api/photos/[...key]` that
+  hands its path straight to `R2.get()` serves *anything* in the bucket to
+  anyone who can guess or learn a key — fine today, but not once something
+  private lands there. Match the exact shape the upload route generates
+  (e.g. `^photos/[a-z0-9-]+/[0-9a-f-]{36}\.jpg$`) and 404 everything else
+  before touching R2 or the cache. Check the upload route's history first,
+  so the pattern covers every key ever written. Send
+  `X-Content-Type-Options: nosniff` on the response too.
 - **Display**: prefer small cropped thumbnails (`object-cover`, fixed
   size) for a browsing grid, with a click-to-fullscreen lightbox
   (`object-contain`, full resolution, no crop) for the actual full view.
@@ -449,6 +489,157 @@ listing a prefix only gives back keys, alphabetically).
   than manually cropping the source file — non-destructive, and the
   original framing stays available if you want to adjust later or reuse
   the photo elsewhere at a different aspect ratio.
+
+## Injection & input handling
+
+Treat every value that crosses a trust boundary as hostile: form fields,
+JSON bodies, query strings, route params, headers, uploaded files, and
+anything read back out of the database that a user originally wrote.
+The framework closes most of these by default; the holes are the places
+you step outside it. A CSP is a backstop for some of these, not a
+substitute for any of them.
+
+**HTML**
+- **Astro templates escape `{expr}` output** in both text and attribute
+  positions, so the default path is safe. The ways out are `set:html`,
+  `innerHTML`/`outerHTML`/`insertAdjacentHTML`/`document.write` in client
+  scripts, and `is:inline` scripts with interpolated data. Never feed any
+  of them data; build DOM with `createElement` + `textContent`. Clearing
+  with `el.innerHTML = ""` is fine.
+- **JSON in a `<script>` tag** (`<script type="application/ld+json"
+  set:html={JSON.stringify(data)} />`) is a breakout: `JSON.stringify`
+  doesn't escape `</script>`. Replace `<` with `<` in the output.
+- **HTML built as a string outside a template gets no escaping at all.**
+  Email bodies are the usual case: `` `<p>Hi ${customerName}</p>` `` puts
+  a customer's markup, links, and tracking pixels into your inbox, or
+  into the customer-facing email itself. Make escaping structural rather
+  than remembered. Write an `html` tagged template that escapes every
+  interpolated value, returning a branded type, and have the send
+  function accept only that type:
+
+  ```ts
+  declare const brand: unique symbol;
+  export type SafeHtml = string & { readonly [brand]: true };
+  export const escapeHtml = (v: unknown) =>
+    String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+  export function html(s: TemplateStringsArray, ...v: unknown[]): SafeHtml {
+    let out = s[0];
+    v.forEach((x, i) => (out += escapeHtml(x) + s[i + 1]));
+    return out as SafeHtml;
+  }
+  // sendEmail({ …, html: SafeHtml }) — a plain template string fails type-check.
+  ```
+
+  Now a raw string is a type error that `astro check` (and so CI) catches.
+- **Header values**: strip `\r`/`\n` from anything user-derived that goes
+  into an email subject, a `from` display name, or another header. JSON
+  email APIs aren't header-parsed, but stripping keeps a provider change
+  from reopening classic header injection. The Fetch `Headers` API itself
+  throws on CR/LF, so a `Location` can't be split — it 500s instead.
+
+**SQL (D1 + Drizzle)**
+- The query builder (`eq`, `inArray`, `.values()`, `.set()`) always binds
+  parameters. So does the `sql` template's `${}`. The holes are
+  `sql.raw()` and any string concatenation into SQL. A dynamic column or
+  `ORDER BY` from the request maps through an allowlist object
+  (`{ name: table.name, date: table.date }[param]`); it's never
+  interpolated. `db.prepare()` on raw D1 uses `.bind()`, never template
+  literals.
+
+**Input validation**
+- **One explicit schema (zod) per route, for every input**, not just the
+  public ones. Use enums for fixed sets (status, contact method), real
+  formats (`z.iso.date()`, not `z.string().min(1)`: a garbage date breaks
+  every later string comparison), integer checks on IDs (route params
+  too), and **length caps on public free text** that match the form's
+  `maxlength`. That bounds what lands in the DB and in emails, and bounds
+  regex cost (ReDoS).
+- **Set server-owned fields explicitly** (`status`, `source`, timestamps,
+  prices) and never spread parsed or raw request data into an insert or
+  update. Zod strips unknown keys by default, which is what stops a
+  forged `status=paid` field. A side effect: a form field you forgot to
+  add to the schema is silently dropped. When adding a field, check it
+  actually reaches the DB.
+- `Object.fromEntries(formData)` is safe from prototype pollution (it
+  creates an own `__proto__` property rather than setting the prototype),
+  but don't hand-roll deep merges of request JSON into objects.
+
+**Redirects and URLs**
+- **Never build `Location` from raw input.** A client-supplied "return
+  to" target needs an allowlist pattern, e.g. `^/admin(/[\w\-/]*)?$`.
+  `startsWith("/")` is not enough: `//evil.com` and `/\evil.com` are
+  both off-site in browsers. On an invalid route param, redirect to the
+  list page instead of echoing the param back.
+- **`href`/`src` built from data**: prefer a fixed path prefix plus an ID
+  or slug (`/stories/${slug}`). For a URL that's genuinely user-supplied
+  (a link field), parse with `new URL()` and require `protocol ===
+  "https:"`, which blocks `javascript:`/`data:`. Never build absolute
+  links in emails from the request's `Host` header; use a configured site
+  URL.
+
+**Reflected messages (content spoofing)**
+- A `?error=…` banner rendered as escaped text can't inject markup, but a
+  crafted link can still put a convincing fake message ("session expired,
+  call …") on a real page. Render it only when `Sec-Fetch-Site` is
+  `same-origin` (the redirect after your own form POST) or absent (old
+  browsers). A link from an email or another site arrives as `none` or
+  `cross-site`. The alternative is a one-shot flash cookie set on the
+  redirect.
+
+**CSRF (form injection from other sites)**
+- **Astro's `security.checkOrigin` is on by default** and rejects
+  cross-origin POST/PUT/PATCH/DELETE whose `Content-Type` is form-like
+  (`application/x-www-form-urlencoded`, `multipart/form-data`,
+  `text/plain`), but **only on on-demand (SSR) routes**, never
+  prerendered ones. Leave it on.
+- `request.json()` parses any body, whatever its declared type. So a JSON
+  endpoint should **require `Content-Type: application/json`** (415
+  otherwise): a cross-site page can't send that without a CORS preflight
+  the server never approves, which holds even if `checkOrigin` were off.
+  Never mutate on GET.
+
+**Uploads and file-serving routes**
+- Re-encode uploads server-side and serve only the re-encoded output with
+  a content type you set. An uploaded SVG or HTML served with its own
+  type is stored XSS. Add `X-Content-Type-Options: nosniff`, and validate
+  keys on public file routes
+  ([Photo/image pipeline](#photoimage-pipeline-if-the-project-has-user-uploaded-photos)).
+
+**Abuse of forms that send email**
+- A public form that emails a confirmation to *the submitted address*,
+  with *the submitted name* in it, is a spam relay with your domain's
+  reputation attached. Escaping doesn't help: mail clients auto-link a
+  bare `evil.com` in plain text. Validate a single address (zod's
+  `.email()` rejects `a@x.com,b@y.com`), cap name length, and before
+  going public add Turnstile and/or a Cloudflare rate-limiting rule on
+  that POST route. Check the current free tiers when adopting.
+
+**Less obvious classes to check, even if they don't apply yet**
+- **Command injection** in build/dev scripts: `spawn`/`spawnSync` with an
+  argv array, never `exec` or `shell: true` with interpolated input.
+- **SSRF**: never `fetch()` a user-supplied URL. If unavoidable,
+  allowlist hosts.
+- **CSV/formula injection**: any export that opens in a spreadsheet
+  prefixes cells starting with `=`, `+`, `-`, `@` with `'`.
+- **GitHub Actions script injection**: `run: echo "${{
+  github.event.pull_request.title }}"` executes attacker-controlled text.
+  Pass such values through `env:` and reference `"$TITLE"`, and don't
+  check out PR code in a `pull_request_target` workflow.
+- **Open redirect Workers**: a domain-redirect Worker should hard-code
+  its target host (`url.hostname = "example.com"`), never read it from
+  the request.
+
+**Auditing a project for all of the above**: list every file that reads
+`formData`, `request.json()`, `searchParams`, `params`, or request
+headers, and every one that calls `redirect`, and read each one. Then grep
+for `set:html|innerHTML|outerHTML|insertAdjacentHTML|document.write|eval\(|new
+Function|sql\.raw|is:inline|define:vars` and for attribute expressions
+built from data (`(href|src|action)=\{`). Test the fixes with real requests:
+`curl` with an `Origin` header matching the server. In Git Bash on
+Windows, `export MSYS_NO_PATHCONV=1` first — otherwise it silently
+rewrites arguments like `x=/admin/y` into Windows paths, and the test
+measures the wrong input.
 
 ## Security headers & CSP (Astro on Workers)
 

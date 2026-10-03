@@ -1,6 +1,6 @@
 ---
 name: cloudflare-playbook
-description: Patterns, gotchas and a security checklist for small sites on Cloudflare Workers — Astro with @astrojs/cloudflare, D1 + Drizzle migrations, R2 + the Images binding, KV, Cloudflare Access for admin routes, wrangler.jsonc, CSP/security headers, npm supply-chain policy, Dependabot, and GitHub Actions deploys. Use when setting up, configuring, securing, deploying or debugging a project on this stack.
+description: Patterns, gotchas and a security checklist for small sites on Cloudflare Workers — Astro with @astrojs/cloudflare, D1 + Drizzle migrations, R2 + the Images binding, KV, Cloudflare Access for admin routes, wrangler.jsonc, CSP/security headers, injection defenses (XSS, email HTML, SQL, open redirects, CSRF, input validation), npm supply-chain policy, Dependabot, and GitHub Actions deploys. Use when setting up, configuring, securing, deploying or debugging a project on this stack, or writing any route or form that handles user input.
 ---
 
 # Cloudflare playbook
@@ -12,6 +12,9 @@ whole file; it's organized by topic.
 - **Starting a project, or reviewing one's security**: begin with its
   "Security checklist for a new project" — each line links to the section
   with the reasoning.
+- **Writing a route, form, redirect or email that touches user input**:
+  read "Injection & input handling" first. These defenses are meant to be
+  applied every time, not saved for an audit.
 - **The project's own docs win.** Where a project's `AGENTS.md` or `docs/`
   records a deliberate deviation, follow the project.
 
