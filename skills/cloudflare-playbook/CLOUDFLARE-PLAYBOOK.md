@@ -401,7 +401,12 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   config deployed — and `/cdn-cgi/access/logout` breaks for them too
   ("Unable to find your Access organization"), because it looks up the
   old team. Clearing the site's cookies (or a private window) and logging
-  in again fixes it; otherwise it lasts until the session expires.
+  in again fixes it; otherwise it lasts until the session expires. **The
+  login page keeps showing the old name** too: the name above "Log in to
+  …" is the login page's own "Your Organization's name" setting, which
+  doesn't follow a rename. That's cosmetic, but confusing next to the new
+  domain in the address bar. Fix it under Zero Trust → Reusable
+  components → Custom pages → Access login page → Manage.
 - **Set `preview_urls: false` alongside `workers_dev: false`** — a
   `<version>-<name>.<subdomain>.workers.dev` preview hostname would sit
   outside a hostname-scoped Access policy just like `workers.dev` would.
