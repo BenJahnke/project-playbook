@@ -92,6 +92,12 @@ workflow — and before reviewing a Dependabot PR or adding a dependency.
 
 ## Docs conventions
 
+- **One home per item**: each open question, to-do, decision or fact
+  lives in exactly one doc; others link to it instead of restating it.
+  Everything open is listed once in `docs/PLAN.md` (Next steps, Open
+  questions). An idea that needs a decision gets a self-contained doc in
+  `docs/proposals/` (format in its README), linked from PLAN.md in one
+  line. This file describes what's built; it doesn't track to-dos.
 - **Date only what git can't supply**: observations of state outside the
   repo (dashboard settings, pricing, third-party support — "as of <date>")
   and tested-vs-assumed claims ("tested <date>"). Never "added <date>" or
@@ -99,7 +105,7 @@ workflow — and before reviewing a Dependabot PR or adding a dependency.
 - **Mark owner preferences as such** in decisions (e.g. "(owner's call)"),
   so they aren't mistaken for technical constraints and "fixed" later.
 - **Parked ideas are labeled**, in FEATURES.md's "Parked ideas" section,
-  rather than half-built or forgotten.
+  rather than half-built or forgotten, and move out of it once built.
 
 ## Gotchas worth remembering
 

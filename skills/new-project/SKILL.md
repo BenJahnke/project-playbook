@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: Scaffold a new project's docs and baseline config from a template — AGENTS.md/CLAUDE.md, README, docs (PLAN, ARCHITECTURE, FEATURES, DESIGN, SECURITY-MODEL), an .npmrc supply-chain policy, Dependabot config, Claude Code permission rules, and for Cloudflare Workers projects a deploy workflow and static-asset security headers. Use when the user asks to start or scaffold a new project, or to add this doc structure to an existing repo.
+description: Scaffold a new project's docs and baseline config from a template — AGENTS.md/CLAUDE.md, README, docs (PLAN, ARCHITECTURE, FEATURES, DESIGN, SECURITY-MODEL, proposals/), an .npmrc supply-chain policy, Dependabot config, Claude Code permission rules, and for Cloudflare Workers projects a deploy workflow and static-asset security headers. Use when the user asks to start or scaffold a new project, or to add this doc structure to an existing repo.
 ---
 
 # New project

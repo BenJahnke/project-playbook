@@ -13,4 +13,4 @@
 Explicitly deferred, not forgotten — revisit once v1 has real use and it's
 clearer what's actually needed.
 
-<!-- TODO(template): ideas that came up but aren't committed, each with a line on why it's parked and what it would take. -->
+<!-- TODO(template): ideas that came up but aren't committed, one line each on why it's parked and what it would take. If one needs a real write-up before deciding, put that in proposals/<topic>.md and link it from here. Once an idea is built, move it up into the scope sections above. -->

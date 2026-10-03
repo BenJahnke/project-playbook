@@ -952,14 +952,24 @@ template has skeletons for all of these:
 - `AGENTS.md` (+ a one-line `CLAUDE.md` that imports it) — rules for AI
   agents, loaded every session: cost goal, dev commands, branching,
   security guidelines for new code, project gotchas. Keep it to what an
-  agent needs *every* time; point to the docs below for the rest.
+  agent needs *every* time; point to the docs below for the rest. It
+  describes what's built; it doesn't track to-dos.
 - `docs/PLAN.md` — what the project is, current status, resolved
-  decisions (with the *why*), open questions. The one file to re-read to
-  get oriented after time away.
+  decisions (with the *why*), and **the one list of everything open**:
+  next steps (decided, still to do) and open questions (waiting on a
+  decision), each a short entry. The one file to re-read to get oriented
+  after time away.
+- `docs/proposals/<topic>.md` — one self-contained doc per idea that
+  needs a decision: status at the top, then the idea, the options, a
+  recommendation, the questions to answer, and technical notes for
+  whoever builds it. PLAN.md's open questions link to it in one line.
+  Once decided, its status line records the outcome and why, and
+  whatever gets built is documented in FEATURES.md and AGENTS.md.
 - `docs/ARCHITECTURE.md` — stack choices and why, the dated free-tier cost
   table, data model.
-- `docs/FEATURES.md` — actual pages/flows for v1, plus a "parked ideas"
-  section for anything explicitly deferred rather than forgotten.
+- `docs/FEATURES.md` — actual pages/flows, plus a "parked ideas" section
+  for anything explicitly deferred rather than forgotten: one line each,
+  linking to a proposal if there is one.
 - `docs/DESIGN.md` — visual direction, brand tone, layout, admin UX.
 - `docs/SECURITY-MODEL.md` — how the project is defended, the dashboard/
   GitHub settings it depends on, review and verification procedures,
@@ -967,10 +977,21 @@ template has skeletons for all of these:
   file with that name in the root, `docs/` or `.github/` as the repo's
   vulnerability-reporting policy.
 
-Two conventions that mattered more than expected:
+Conventions that mattered more than expected:
 
+- **One home per item.** Each open question, to-do, decision or fact
+  lives in exactly one doc, and the others link to it instead of
+  restating it. Without this rule, items drift into several places: the
+  same "is the domain verified yet?" question ended up listed three times
+  in one PLAN.md, and a security risk got written up in both PLAN.md and
+  AGENTS.md. The copies go stale at different rates. Splitting a proposal
+  from its questions also makes it hard to hand to someone outside the
+  code (a co-owner, a client) for review, which is why a proposal keeps
+  everything in one file.
 - **Label "parked idea, not committed" content explicitly** rather than
-  either building it prematurely or losing track of it.
+  either building it prematurely or losing track of it, and move an idea
+  out of the parked list once it's built. A built feature still listed
+  as parked misleads the next reader.
 - **Date only what git can't.** Observations of state outside the repo
   (dashboard settings, pricing, third-party support — "as of <date>") and
   tested-vs-assumed claims ("tested <date>") carry a date, because they go

@@ -22,11 +22,21 @@ Direct merge is fine for a single-developer project — no PR needed.
   one before adding it. The one unavoidable cost is the domain.
   <!-- TODO(template): delete if the project has a budget. -->
 
+## Next steps
+
+<!-- Things already decided and still to do, roughly in order. Short entries; anything needing more than a short paragraph gets its own doc, linked from here in one line. -->
+
 ## Open questions
 
-<!-- Undecided things, each with what the decision depends on. Move them to Resolved decisions once settled. -->
+<!-- Undecided things, each with what the decision depends on. An idea that needs a real write-up (options, a recommendation, questions to answer) gets its own doc in proposals/ and a one-line link here. Move each to Resolved decisions once settled. -->
 
 ## How to pick this back up
+
+Each thing lives in one place, and other docs link to it rather than
+repeating it. This file is the one list of everything open: Next steps
+and Open questions above. Ideas waiting on a decision each have a
+self-contained doc in [proposals/](proposals/). AGENTS.md describes
+what's built and the rules for new code, not to-dos.
 
 Read this file first, then [FEATURES.md](FEATURES.md) for what's in
 scope, [ARCHITECTURE.md](ARCHITECTURE.md) for the stack and data model,
