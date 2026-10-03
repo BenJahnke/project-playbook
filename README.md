@@ -1,7 +1,6 @@
 # project-playbook
 
-Playbooks, doc templates and Claude Code skills for starting and running
-my projects.
+Playbooks, doc templates and Claude Code skills for starting and running projects.
 
 ## What's here
 
