@@ -65,6 +65,11 @@ admin bypass.
 **Data & photos**
 - [ ] Secrets as Worker secrets, never `vars`
       ([wrangler.jsonc patterns](#wranglerjsonc-patterns))
+- [ ] A privacy page names everyone that handles visitor data: the host
+      and storage, the email sender, the bot check, any font or analytics
+      host, and any people you pass details on to. Self-hosting fonts
+      keeps Google off the list
+      ([Frontend styling patterns](#frontend-styling-patterns)).
 - [ ] Uploads re-encoded before storage; served only via a re-encoding
       route as WebP; R2 public access off; metadata stripping *tested*
       ([Photo/image pipeline](#photoimage-pipeline-if-the-project-has-user-uploaded-photos))
@@ -111,6 +116,13 @@ admin bypass.
   (e.g. `contact@yourdomain.com` → a Gmail inbox) — fully scriptable via
   `wrangler email routing`, no dashboard needed.
 - **GitHub Actions** for CI/CD, triggered on push to `main`.
+- **Local servers detach on their own (Astro 7.3+).** Started from a
+  non-interactive shell (an AI agent's, a script's), `astro dev` and
+  `astro preview` fork into the background, print a pid, and return
+  immediately. Manage them with `node_modules/.bin/astro dev
+  status|logs|stop` (same for `preview`), not by killing the shell. Their
+  output only shows up through `logs`, not the launching command, and
+  they keep running between commands until stopped.
 
 ## Cost / free tier
 
@@ -235,6 +247,17 @@ for whether the failing method name also happens to exist on
 HTMLRewriter's `Element` or on `CacheStorage`.
 
 ## D1 + Drizzle migration safety
+
+- **Drizzle's `text("col", { enum: [...] })` on SQLite is TypeScript-only.**
+  It generates no `CHECK` constraint, so the database accepts any string.
+  Validate with a zod enum at every write. The upside: adding an option
+  to a fixed list needs no migration. For a list people pick from (a
+  dropdown, a "how did you hear about us"), store a stable short code and
+  keep its label in code. Labels can then change freely, but codes are
+  never renamed or reused. Retire an option by taking it off the form
+  while keeping its label, so older rows still display. Don't make such a
+  list admin-editable: editing a stored option in place silently changes
+  what every older answer means.
 
 - **Never assume a remote/production D1 database only has test data
   before running a destructive migration** (a table drop, a column
@@ -423,7 +446,11 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   auto-generated team domain, defaulting to "sign in with a Cloudflare
   account" rather than One-Time PIN) rather than automatically reusing an
   existing Access policy — check the login screen actually offers OTP,
-  and add it explicitly if not.
+  and add it explicitly if not. It also names the Access application
+  `<worker name> - Cloudflare Workers`, which is the "Log in to …"
+  heading visitors see. Since the whole gate comes off at launch, it's
+  not worth rebranding; give the path-scoped `/admin` application (which
+  stays) the friendly name instead.
 
 ## Photo/image pipeline (if the project has user-uploaded photos)
 
@@ -664,6 +691,12 @@ substitute for any of them.
     request that went through. In the page's script, hold the submit
     until the hidden `cf-turnstile-response` input has a value, then
     disable the button.
+  - **One widget per project, not per domain.** A widget's hostname
+    covers all its subdomains (`example.com` includes `www`), and a free
+    widget holds up to 10 hostnames, unrelated ones included. Sharing
+    one widget across separate projects works, but they then share one
+    secret (a leak or rotation hits every site at once) and one set of
+    analytics. With 20 free widgets, give each project its own.
   - **Test keys**: site key `1x00000000000000000000AA` always passes,
     paired with secret `1x0000000000000000000000000000000AA`; secret
     `2x0000000000000000000000000000000AA` always fails. Use the
@@ -757,7 +790,11 @@ measures the wrong input.
   launch any installed Chromium with `--headless=new
   --remote-debugging-port=N` and drive it over the DevTools Protocol with
   Node's built-in `fetch` + `WebSocket` (`Log.entryAdded` and
-  `Audits.issueAdded` surface CSP violations).
+  `Audits.issueAdded` surface CSP violations). The same harness checks a
+  page's third-party footprint too: collect `Network.requestWillBeSent`
+  origins to prove nothing loads off-site, and evaluate
+  `document.fonts.ready` then list `document.fonts` to confirm
+  self-hosted fonts actually loaded rather than silently falling back.
   Pages you can't browse in preview (e.g. auth-gated admin) can be
   checked statically: the build's server manifest holds each page
   script's exact text (`inlinedScripts`) and the allowlisted
@@ -945,6 +982,11 @@ local dev + production) rather than just reading the code:
   2026-10-03), so declare `weight: "100 900"`. Commit each font's OFL text
   alongside it.
 
+- **A line break before a `{expression}` in Astro text can eat the
+  space.** `percentages are of the` + newline + `{count} requests`
+  rendered as "of the2 requests" (Astro 7). Keep the expression on the
+  same line as the word before it (`of the {count} requests`), or write
+  `{" "}` explicitly. Check rendered text, not the template.
 - **Header/nav flex layouts need an explicit mobile breakpoint.** A plain
   `display: flex; justify-content: space-between` on a header row looks
   fine at desktop widths and silently overflows horizontally on real phone
