@@ -57,8 +57,9 @@ admin bypass.
       `Content-Type: application/json`
 - [ ] Public file routes serve only the key shape the app writes, with
       `nosniff`
-- [ ] A public form that emails the submitted address has bot protection
-      or a rate limit before launch
+- [ ] A public form that emails the submitted address or reserves
+      inventory has Turnstile (verified server-side, fails closed) and a
+      rate limit before launch
 - [ ] Workflows never put `${{ github.event.* }}` straight into `run:`
 
 **Data & photos**
@@ -158,6 +159,16 @@ warns locally if it's unset, without ever pushing a value:
   "required": ["RESEND_API_KEY"]
 }
 ```
+
+Two side effects of the `secrets` block worth knowing:
+- **`wrangler deploy` fails until every required secret is set on the
+  Worker.** Useful as a guard: add a new secret's name before the code
+  that depends on it, and a deploy can't ship that code without it.
+- **Only the listed names load from `.dev.vars`; anything else in it is
+  silently ignored.** So `.dev.vars` can't override a `vars` value
+  locally once the block exists. If local dev needs a different
+  non-secret value (e.g. a test site key), choose it in code under
+  `import.meta.env.DEV`.
 
 **`routes` and `workers_dev` interact.** Adding a `routes` block (to attach
 a custom domain) disables the `<name>.<subdomain>.workers.dev` test URL by
@@ -586,6 +597,11 @@ substitute for any of them.
   browsers). A link from an email or another site arrives as `none` or
   `cross-site`. The alternative is a one-shot flash cookie set on the
   redirect.
+- **Map an error code to a fixed message with a `Map`, not an object
+  literal.** `MESSAGES[searchParams.get("error")]` on a plain object finds
+  `Object.prototype`'s members, so `?error=constructor` prints
+  `function Object() { [native code] }` on the page. Use `new Map(...)`
+  (or `Object.hasOwn`) for any lookup keyed by user input.
 
 **CSRF (form injection from other sites)**
 - **Astro's `security.checkOrigin` is on by default** and rejects
@@ -606,14 +622,46 @@ substitute for any of them.
   keys on public file routes
   ([Photo/image pipeline](#photoimage-pipeline-if-the-project-has-user-uploaded-photos)).
 
-**Abuse of forms that send email**
+**Abuse of public forms (bots)**
 - A public form that emails a confirmation to *the submitted address*,
   with *the submitted name* in it, is a spam relay with your domain's
   reputation attached. Escaping doesn't help: mail clients auto-link a
   bare `evil.com` in plain text. Validate a single address (zod's
-  `.email()` rejects `a@x.com,b@y.com`), cap name length, and before
-  going public add Turnstile and/or a Cloudflare rate-limiting rule on
-  that POST route. Check the current free tiers when adopting.
+  `.email()` rejects `a@x.com,b@y.com`) and cap name length.
+- **A form that reserves capacity on submit is a griefing target too.**
+  If each request counts against limited inventory before anyone
+  confirms it, a few scripted submissions make everything look sold out
+  to real buyers. That's often a bigger risk than the email.
+- **Before going public, add Turnstile and a rate limit**, both checked
+  before anything is saved or emailed. As of 2026-10-03 both are free:
+  Turnstile's free plan has unlimited verifications, and the Workers Rate
+  Limiting binding has no separate charge (calls count as ordinary Worker
+  usage).
+  - **Turnstile**: verify the token server-side at
+    `https://challenges.cloudflare.com/turnstile/v0/siteverify` and fail
+    closed on a missing secret or token, a network error, a timeout, or
+    anything but `success: true`. CSP needs
+    `https://challenges.cloudflare.com` in `script-src` and `frame-src`
+    (tested on Astro 7: `scriptDirective.resources` plus a `frame-src`
+    directive, and `<script is:inline src="…/api.js" async defer>` on the
+    page; an external `src` needs no hash).
+  - **Tokens are single-use**, so a double-clicked submit sends a second
+    request that fails verification, and the person sees an error for a
+    request that went through. In the page's script, hold the submit
+    until the hidden `cf-turnstile-response` input has a value, then
+    disable the button.
+  - **Test keys**: site key `1x00000000000000000000AA` always passes,
+    paired with secret `1x0000000000000000000000000000000AA`; secret
+    `2x0000000000000000000000000000000AA` always fails. Use the
+    always-fail secret to test that rejection is actually enforced: the
+    always-pass secret accepts any token, so it can't prove that.
+  - **Rate Limiting binding**: `ratelimits` in `wrangler.jsonc`, keyed on
+    `CF-Connecting-IP`; `period` must be 10 or 60. `namespace_id` is
+    unique per *account*, not per Worker, so don't reuse the docs'
+    example `"1001"` if another project on the account might. Local dev
+    (miniflare) enforces it with windows aligned to the clock minute, and
+    the count survives a restart. Start a test in a fresh minute, or it
+    measures leftover requests rather than the limit.
 
 **Less obvious classes to check, even if they don't apply yet**
 - **Command injection** in build/dev scripts: `spawn`/`spawnSync` with an
