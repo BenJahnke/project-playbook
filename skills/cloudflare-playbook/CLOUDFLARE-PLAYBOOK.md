@@ -406,7 +406,11 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   …" is the login page's own "Your Organization's name" setting, which
   doesn't follow a rename. That's cosmetic, but confusing next to the new
   domain in the address bar. Fix it under Zero Trust → Reusable
-  components → Custom pages → Access login page → Manage.
+  components → Custom pages → Access login page → Manage. That page's
+  name, logo and colors apply to *every* Access application in the
+  account, so with several sites on one account, use a neutral name.
+  The per-site parts are the application's own name (the "Log in to …"
+  heading) and its login methods, both set on the application itself.
 - **Set `preview_urls: false` alongside `workers_dev: false`** — a
   `<version>-<name>.<subdomain>.workers.dev` preview hostname would sit
   outside a hostname-scoped Access policy just like `workers.dev` would.
