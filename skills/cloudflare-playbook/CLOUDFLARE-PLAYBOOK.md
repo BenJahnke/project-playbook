@@ -640,7 +640,12 @@ substitute for any of them.
   - **Turnstile**: verify the token server-side at
     `https://challenges.cloudflare.com/turnstile/v0/siteverify` and fail
     closed on a missing secret or token, a network error, a timeout, or
-    anything but `success: true`. CSP needs
+    anything but `success: true`. Also require the response's `action` to
+    match the widget's `data-action` and its `hostname` to match the
+    request's, so a token solved for another form or page can't be
+    replayed. Test-key responses come back with hostname `example.com`
+    and no `action` (checked against siteverify 2026-10-03), so skip
+    those two checks under `astro dev`, where the test keys are used. CSP needs
     `https://challenges.cloudflare.com` in `script-src` and `frame-src`
     (tested on Astro 7: `scriptDirective.resources` plus a `frame-src`
     directive, and `<script is:inline src="…/api.js" async defer>` on the
