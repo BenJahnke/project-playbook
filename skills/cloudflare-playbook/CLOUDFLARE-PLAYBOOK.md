@@ -930,6 +930,21 @@ Recurring CSS/UX mistakes worth checking for on any new project, found by
 actually screenshotting a "finished" site (desktop + real mobile widths,
 local dev + production) rather than just reading the code:
 
+- **Self-host web fonts rather than linking Google Fonts.** Linking makes
+  every visitor's browser contact Google, which belongs on a privacy page,
+  and adds two origins to the CSP. Since browsers partition their caches
+  per site, a shared CDN is no faster anymore either. Astro 6+ has a
+  built-in `fonts` config. With `fontProviders.local()` and the files
+  committed under `src/` (not `public/`, which duplicates them), there's
+  no build-time fetch, and Astro generates metric-matched fallback faces
+  that cut layout shift. Render `<Font cssVariable="--font-x" preload />`
+  in the layout's `<head>`, and point the theme's font tokens at
+  `var(--font-x)`. To get the files, request the Google Fonts CSS with a
+  current browser's User-Agent. For the latin subset it returns one
+  variable-weight `woff2` per family, covering every weight (tested
+  2026-10-03), so declare `weight: "100 900"`. Commit each font's OFL text
+  alongside it.
+
 - **Header/nav flex layouts need an explicit mobile breakpoint.** A plain
   `display: flex; justify-content: space-between` on a header row looks
   fine at desktop widths and silently overflows horizontally on real phone
