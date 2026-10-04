@@ -411,7 +411,10 @@ HTMLRewriter's `Element` or on `CacheStorage`.
 
 ## Worker Previews (per-branch environments)
 
-Announced 2026-09-22; checked against the docs 2026-10-04.
+Announced 2026-09-22; checked against the docs 2026-10-04. Whether to
+use them is a **per-project decision** — record it in the project's
+PLAN.md either way. What's below is how they work, what to weigh, and
+the safety rules if a project does use them.
 
 - **What it is:** `wrangler preview` (Wrangler ≥ 4.135) deploys the
   current branch as a **Preview** under the same Worker, with its own
@@ -453,18 +456,21 @@ Announced 2026-09-22; checked against the docs 2026-10-04.
   closed on a hostname Access doesn't cover: the admin is unreachable
   there rather than open, but public pages and unreleased content are
   visible.
-- **Where it pays off for a small site:** testing what only real
-  Cloudflare does before merging — the Images binding, a real Turnstile
-  widget on a real hostname, Access, scripts Cloudflare injects at the
-  edge — or sharing work in progress. The cost is setup: preview copies
-  of each D1/KV/R2 (free tiers cover them), Turnstile (add the preview
-  hostname to the widget, or use test keys plus an environment flag so a
-  hostname check doesn't reject them), and Access on preview hostnames if
-  the admin should work there. For a single-developer site that tests
-  locally and ships from `main`, that's usually more setup than it saves.
-- **Guard against an accidental Preview either way:** until a `previews`
-  block exists, `wrangler preview` binds production storage. Keeping
-  local wrangler logged out and `npx` behind approval means an AI agent
+- **What to weigh when deciding:**
+  - *For:* testing what only real Cloudflare does before merging — the
+    Images binding, a real Turnstile widget on a real hostname, Access,
+    scripts Cloudflare injects at the edge — sharing work in progress
+    with someone, and giving AI agents a real environment to iterate in.
+  - *Against:* setup and upkeep — preview copies of each D1/KV/R2 (free
+    tiers cover them) and their migrations, Turnstile (add the preview
+    hostname to the widget, or use test keys plus an environment flag so
+    a hostname check doesn't reject them), and Access on preview
+    hostnames if the admin should work there. The fewer collaborators and
+    the more a project can test locally, the less this buys.
+- **If a project decides against them, guard against an accidental
+  Preview:** without a `previews` block, `wrangler preview` binds
+  production storage. Say so in the project's AGENTS.md; keeping local
+  wrangler logged out and `npx` behind approval means an AI agent
   following the docs' agent workflow can't run it by accident.
 
 ## Cloudflare Access
