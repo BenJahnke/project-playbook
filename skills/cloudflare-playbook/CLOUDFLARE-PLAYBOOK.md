@@ -46,6 +46,9 @@ admin bypass.
 - [ ] Every route parses input through an explicit schema: enums, real
       date formats, length caps on public free text; server-owned fields
       set explicitly, never spread from the request
+- [ ] A child ID from the request is checked against its parent before
+      any side effect (file deletes, emails), not just in the final
+      `WHERE`
 - [ ] No `Location` built from raw input; any client-supplied redirect
       target allowlisted to a same-site path pattern (not just
       `startsWith("/")`)
@@ -176,6 +179,11 @@ Two side effects of the `secrets` block worth knowing:
 - **`wrangler deploy` fails until every required secret is set on the
   Worker.** Useful as a guard: add a new secret's name before the code
   that depends on it, and a deploy can't ship that code without it.
+  (Wrangler 4 declares each listed name as an `inherit` binding, and the
+  API rejects the deploy when the Worker has no such secret; confirmed
+  in its source.) It checks that the secret *exists*, not its value, so
+  a placeholder set during setup satisfies it; a project that deploys
+  fine with "unset" secrets has placeholders somewhere.
 - **Only the listed names load from `.dev.vars`; anything else in it is
   silently ignored.** So `.dev.vars` can't override a `vars` value
   locally once the block exists. If local dev needs a different
@@ -347,6 +355,14 @@ HTMLRewriter's `Element` or on `CacheStorage`.
 - **Run `npm audit signatures` right after `npm ci`** — fails the build if
   any installed package lacks a valid registry signature or has an
   invalid provenance attestation.
+- **`astro check` doesn't type-check expressions inside a frontmatter
+  `return`** (tested on Astro 7.3: an undefined variable and a
+  nonexistent method inside `return …` both passed with 0 errors, while
+  the same mistake on the next line was caught). It's also why a
+  function used only in a `return` shows a "declared but never read"
+  hint. So the CI type-check doesn't cover those lines: keep `return`
+  expressions trivial — a call, or a value computed above — and put real
+  logic before it or in a `.ts` module.
 - **Scope the Cloudflare token to the steps that need it** (`env:` on the
   migrate/deploy steps, not the job) so install scripts and build plugins
   never see it — with the caveat that an earlier step can still tamper
@@ -602,6 +618,19 @@ substitute for any of them.
   too), and **length caps on public free text** that match the form's
   `maxlength`. That bounds what lands in the DB and in emails, and bounds
   regex cost (ReDoS).
+- **zod is already there: `import { z } from 'astro/zod'`.** Astro bundles
+  it (Astro 7.3 ships zod 4), so validation needs no new dependency. Two
+  zod 4 traps with form fields, which always arrive as strings:
+  `z.coerce.number()` turns `''` into `0`, so a blank required number
+  silently passes — use `z.string().trim().min(1).transform(Number).pipe(z.number().min(…).max(…))`
+  (a non-number then fails as NaN). And `.pipe(z.coerce.number())` after a
+  string schema doesn't type-check (a coercing schema's input is
+  `unknown`), which is another reason to use `.transform(Number)`.
+- **Check a child ID belongs to its parent before any side effect**, not
+  only in the final `WHERE`. A handler like "delete item N from album P"
+  that deletes N's R2 files first and then runs a P-scoped row delete lets
+  a tampered N wipe another album's files while their rows survive. Look
+  the child up scoped to the parent, and do nothing unless it's found.
 - **Set server-owned fields explicitly** (`status`, `source`, timestamps,
   prices) and never spread parsed or raw request data into an insert or
   update. Zod strips unknown keys by default, which is what stops a
