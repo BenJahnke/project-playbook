@@ -39,5 +39,20 @@
       "PowerShell(bunx *)",
       "PowerShell(bun x *)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/playbook-updates.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking the playbook for updates"
+          }
+        ]
+      }
+    ]
   }
 }

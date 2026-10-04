@@ -33,3 +33,9 @@ on this stack, add it to the playbook, not just the project's docs:
   <date>", "tested <date>"), per the playbook's "Docs structure" section.
 - This skill directory is usually a link to a local clone of that repo,
   so edits here land in the clone — commit and push them there.
+- **Write commit subjects that stand alone.** Projects scaffolded from the
+  `new-project` template run a session-start hook that lists playbook
+  commits since their last review, by subject line, for the user to
+  prioritize. "Playbook: Turnstile tokens are single-use" helps; "update
+  playbook" doesn't. Keep changes under `skills/`; that's the only path
+  the hook watches.

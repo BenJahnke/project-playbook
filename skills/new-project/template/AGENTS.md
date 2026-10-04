@@ -21,6 +21,28 @@ Anything in this file or `docs/` overrides it. When you hit a gotcha that
 would apply to *any* project on this stack, add it to the playbook as well
 (project-agnostic wording only — that repo is public).
 
+**At the start of every session, review what's new in the playbook.**
+Other projects keep adding to it. A SessionStart hook
+(`scripts/playbook-updates.mjs`, wired in `.claude/settings.json`; needs
+`node` on PATH) pulls the skill's local clone and puts the commits since
+the last review into context ("Playbook: N new commits…"). If that
+message is missing, do it by hand:
+
+1. `git -C ~/.claude/skills/cloudflare-playbook pull --ff-only` (the skill
+   is a link to a local clone of the playbook repo).
+2. `git -C ~/.claude/skills/cloudflare-playbook log --oneline
+   <commit>..HEAD -- :/skills/`, then read the same range with `diff`.
+   The `:/` matters: the skill link points at a subfolder of the clone,
+   so a plain `skills/` matches nothing.
+3. Give the user a short list. For each change: what it is, whether it
+   applies here (already handled, needs work, or needs a decision), and a
+   suggested priority. **Let the user choose what to tackle**; don't apply
+   changes unprompted. If nothing changed, say so in one line.
+4. Record anything that applies but isn't done in docs/PLAN.md, then
+   update the commit below.
+
+**Last reviewed: playbook commit `{{PLAYBOOK_COMMIT}}`.**
+
 ## Development
 
 <!-- TODO(template): how to start the dev server, run checks, and work with the database. -->

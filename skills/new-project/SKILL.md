@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: Scaffold a new project's docs and baseline config from a template — AGENTS.md/CLAUDE.md, README, docs (PLAN, ARCHITECTURE, FEATURES, DESIGN, SECURITY-MODEL, proposals/), an .npmrc supply-chain policy, Dependabot config, Claude Code permission rules, and for Cloudflare Workers projects a deploy workflow and static-asset security headers. Use when the user asks to start or scaffold a new project, or to add this doc structure to an existing repo.
+description: Scaffold a new project's docs and baseline config from a template — AGENTS.md/CLAUDE.md, README, docs (PLAN, ARCHITECTURE, FEATURES, DESIGN, SECURITY-MODEL, proposals/), an .npmrc supply-chain policy, Dependabot config, Claude Code permission rules, a session-start hook that lists new playbook changes, and for Cloudflare Workers projects a deploy workflow and static-asset security headers. Use when the user asks to start or scaffold a new project, or to add this doc structure to an existing repo.
 ---
 
 # New project
@@ -36,6 +36,13 @@ Copy everything under `template/`, keeping the relative paths
   with the answers. Leave any you don't have as-is, so they're easy to
   find later. **Don't touch `${{ … }}`** in the workflow file — those are
   GitHub Actions expressions, not placeholders.
+- Replace `{{PLAYBOOK_COMMIT}}` in `AGENTS.md` with the output of
+  `git -C ~/.claude/skills/cloudflare-playbook rev-parse --short HEAD`.
+  The new project starts out reviewed up to the playbook it was built
+  from, so its session-start hook (`scripts/playbook-updates.mjs`, run
+  from `.claude/settings.json`) only lists later changes. If the skill
+  isn't installed, leave the placeholder; the hook then asks for one
+  full review instead.
 - **Leave `<!-- TODO(template): … -->` markers in place** unless the
   answers genuinely fill that section. Don't invent content to fill a
   section: an honest TODO beats plausible filler that reads as fact.
