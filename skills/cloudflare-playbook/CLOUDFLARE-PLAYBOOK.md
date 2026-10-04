@@ -66,6 +66,9 @@ admin bypass.
 - [ ] Workflows never put `${{ github.event.* }}` straight into `run:`
 
 **Data & photos**
+- [ ] No Worker Previews (`wrangler preview`) until a `previews` block
+      points every D1/KV/R2 binding at preview-only resources
+      ([Worker Previews](#worker-previews-per-branch-environments))
 - [ ] Secrets as Worker secrets, never `vars`
       ([wrangler.jsonc patterns](#wranglerjsonc-patterns))
 - [ ] A privacy page names everyone that handles visitor data: the host
@@ -373,6 +376,97 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   single-developer project, no PR needed) only when ready to ship. No
   branch protection needed at that scale.
 
+## Observability (Workers Logs)
+
+- **Turn on Workers Logs in `wrangler.jsonc`, not with the dashboard
+  toggle:**
+
+  ```jsonc
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+  ```
+
+  The config file is what every deploy applies, so a setting changed
+  only in the dashboard can be switched back off by the next deploy. New
+  Workers default to on; older ones don't.
+- **Free plan: 200,000 log events a day, kept 3 days** (Paid: 20 million
+  a month included, kept 7 days; as of 2026-10-04). A small site uses a
+  sliver of that: about one invocation log per request plus whatever the
+  code logs. View under Workers & Pages → your Worker → Observability.
+- **It's the only stored view of production once local wrangler is
+  logged out**, since `wrangler tail` needs a login. Without it, the
+  dashboard's real-time log stream still works, but nothing is kept.
+- **What gets recorded:** each request's invocation log has the path,
+  method, status and outcome, plus metadata Cloudflare attaches (visitor
+  city, country, …). The docs don't say whether IP addresses or request
+  headers are included, so if that matters (say, for a privacy page),
+  open one log entry after enabling and look. Adding
+  `"logs": { "invocation_logs": false }` under `observability` keeps only
+  what the code logs, but the docs don't confirm uncaught exceptions are
+  still captured that way.
+- **Log the reason on every fail-closed path** — a bot check's error
+  codes, an auth rejection — but never secrets, tokens, or submitted form
+  content. A security check that rejects silently can't be diagnosed in
+  production. Turnstile's `invalid-input-secret`, for example, pins a
+  broken deploy on a wrong secret in one log line.
+
+## Worker Previews (per-branch environments)
+
+Announced 2026-09-22; checked against the docs 2026-10-04.
+
+- **What it is:** `wrangler preview` (Wrangler ≥ 4.135) deploys the
+  current branch as a **Preview** under the same Worker, with its own
+  vars, secrets, bindings, URL (`<preview>-<worker>.<subdomain>.workers.dev`,
+  or `<preview>.app.example.com` on a custom domain) and observability.
+  Workers Builds (Cloudflare's Git-connected CI) creates one
+  automatically on every push. A Worker deployed only with `wrangler
+  deploy` from your own CI gets none unless someone runs the command.
+  Free plan: 100 Previews per Worker and 100 deployments each, with the
+  oldest deleted automatically; `wrangler preview delete --name <preview>`
+  removes one.
+- **Not the same thing as Version URLs** (the `preview_urls` setting):
+  those run one uploaded version with *production* resources and no
+  isolation.
+- **The trap: storage bindings default to production.** Only Durable
+  Objects and Containers are isolated automatically. D1, KV, R2 and
+  Queues bind by ID, so a Preview whose config doesn't override them
+  reads and writes **production data** — while running unmerged code.
+  Override every storage binding in a `previews` block (same binding
+  names, preview-only resources), and give D1 its own migrations target:
+
+  ```jsonc
+  "previews": {
+    "vars": { "ENVIRONMENT": "preview" },
+    "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "myapp-preview-photos" }]
+    // …and likewise d1_databases / kv_namespaces, pointed at preview copies
+  }
+  ```
+
+  Preview secrets are separate: `wrangler preview base-config secret put
+  NAME` for all Previews, `wrangler preview secret put NAME --name
+  <preview>` for one. Also: service bindings always call the other
+  Worker's *production* deployment, messages a Preview sends to a
+  production Queue are consumed by production, and Cron Triggers only run
+  on production.
+- **Public by default.** workers.dev Preview URLs are open to anyone
+  (sent with `X-Robots-Tag: noindex`). Custom-domain Previews can go
+  behind Cloudflare Access. An app with an in-app Access JWT check fails
+  closed on a hostname Access doesn't cover: the admin is unreachable
+  there rather than open, but public pages and unreleased content are
+  visible.
+- **Where it pays off for a small site:** testing what only real
+  Cloudflare does before merging — the Images binding, a real Turnstile
+  widget on a real hostname, Access, scripts Cloudflare injects at the
+  edge — or sharing work in progress. The cost is setup: preview copies
+  of each D1/KV/R2 (free tiers cover them), Turnstile (add the preview
+  hostname to the widget, or use test keys plus an environment flag so a
+  hostname check doesn't reject them), and Access on preview hostnames if
+  the admin should work there. For a single-developer site that tests
+  locally and ships from `main`, that's usually more setup than it saves.
+- **Guard against an accidental Preview either way:** until a `previews`
+  block exists, `wrangler preview` binds production storage. Keeping
+  local wrangler logged out and `npx` behind approval means an AI agent
+  following the docs' agent workflow can't run it by accident.
+
 ## Cloudflare Access
 
 - **Admin routes**: put every admin-only route — both the UI pages *and*
@@ -451,8 +545,12 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   The per-site parts are the application's own name (the "Log in to …"
   heading) and its login methods, both set on the application itself.
 - **Set `preview_urls: false` alongside `workers_dev: false`** — a
-  `<version>-<name>.<subdomain>.workers.dev` preview hostname would sit
-  outside a hostname-scoped Access policy just like `workers.dev` would.
+  `<version>-<name>.<subdomain>.workers.dev` hostname would sit outside a
+  hostname-scoped Access policy just like `workers.dev` would. Cloudflare
+  now calls these **Version URLs**; the setting kept its old name. It's
+  separate from the newer **Worker Previews** (per-branch environments,
+  see [Worker Previews](#worker-previews-per-branch-environments)), and
+  the docs don't say `preview_urls: false` turns those off.
 - **"Protect this Worker" (the Worker-level Access toggle in Workers &
   Pages → your Worker → Access) is all-or-nothing** — it gates every route
   on the Worker, with no path scoping. Good for "hide the entire site
@@ -828,6 +926,16 @@ measures the wrong input.
   checked statically: the build's server manifest holds each page
   script's exact text (`inlinedScripts`) and the allowlisted
   `scriptHashes`; every script's sha256 must be in the list.
+- **Cloudflare can inject scripts at the edge that no local build has.**
+  With Web Analytics' automatic setup on for a hostname, Cloudflare adds
+  `<script src="https://static.cloudflareinsights.com/beacon.min.js/…">`
+  to HTML responses, but only for browser-like requests: `curl` with its
+  default User-Agent gets the page without it, so a quick check misses
+  it. A strict CSP blocks it, which means no analytics and a console
+  error on every page. Decide on purpose: turn Web Analytics' automatic
+  setup off, or allow the beacon's script origin and its reporting
+  endpoint in the CSP and list it on the privacy page. Only a real
+  browser against *production* shows this, never a local preview build.
 
 ## Supply chain (npm, CI, and AI-assisted development)
 

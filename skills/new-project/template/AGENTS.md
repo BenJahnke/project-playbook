@@ -45,6 +45,15 @@ with "You are not authenticated" until the user runs
 `npm run wrangler -- login` — ask them to, and to
 `npm run wrangler -- logout` afterwards. Local dev needs no login.
 
+**Production logs** come from Workers Logs (`observability` in
+`wrangler.jsonc`): Workers & Pages → this Worker → Observability, kept 3
+days. Ask the user to look there when debugging production-only
+behavior, since `wrangler tail` needs a login. Never log secrets, tokens
+or form content. **Don't run `wrangler preview`** unless the config has a
+`previews` block pointing every storage binding at preview-only
+resources — otherwise a Preview uses production data (playbook, "Worker
+Previews").
+
 ## Structure
 
 <!-- TODO(template): routes/pages and where their code lives, the data model in a line or two, and any non-obvious conventions (e.g. how multi-action forms are wired). Keep it to what an agent needs every session; details go in docs/. -->

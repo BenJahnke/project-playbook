@@ -71,7 +71,10 @@ Finish with:
     turn on the dependency graph, Dependabot alerts, malware alerts,
     security updates and grouped security updates ("GitHub repository
     security settings").
-  - Cloudflare (if deploying there): a `CLOUDFLARE_API_TOKEN` repo secret
+  - Cloudflare (if deploying there): add
+    `"observability": { "enabled": true, "head_sampling_rate": 1 }` to
+    `wrangler.jsonc` if it isn't there, so production logs exist
+    ("Observability"); a `CLOUDFLARE_API_TOKEN` repo secret
     holding an Account API Token with separate account- and zone-scoped
     policies ("CI/CD & branching"); an Access application covering both
     `admin` and `admin/*` if there's an admin area ("Cloudflare Access").

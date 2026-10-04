@@ -1,6 +1,6 @@
 ---
 name: cloudflare-playbook
-description: Patterns, gotchas and a security checklist for small sites on Cloudflare Workers — Astro with @astrojs/cloudflare, D1 + Drizzle migrations, R2 + the Images binding, KV, Cloudflare Access for admin routes, wrangler.jsonc, CSP/security headers, injection defenses (XSS, email HTML, SQL, open redirects, CSRF, input validation), npm supply-chain policy, Dependabot, and GitHub Actions deploys. Use when setting up, configuring, securing, deploying or debugging a project on this stack, or writing any route or form that handles user input.
+description: Patterns, gotchas and a security checklist for small sites on Cloudflare Workers — Astro with @astrojs/cloudflare, D1 + Drizzle migrations, R2 + the Images binding, KV, Cloudflare Access for admin routes, wrangler.jsonc, observability (Workers Logs), Worker Previews, CSP/security headers, injection defenses (XSS, email HTML, SQL, open redirects, CSRF, input validation), npm supply-chain policy, Dependabot, and GitHub Actions deploys. Use when setting up, configuring, securing, deploying or debugging a project on this stack, or writing any route or form that handles user input.
 ---
 
 # Cloudflare playbook
