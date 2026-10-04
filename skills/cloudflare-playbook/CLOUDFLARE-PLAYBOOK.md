@@ -938,10 +938,19 @@ measures the wrong input.
   to HTML responses, but only for browser-like requests: `curl` with its
   default User-Agent gets the page without it, so a quick check misses
   it. A strict CSP blocks it, which means no analytics and a console
-  error on every page. Decide on purpose: turn Web Analytics' automatic
-  setup off, or allow the beacon's script origin and its reporting
-  endpoint in the CSP and list it on the privacy page. Only a real
-  browser against *production* shows this, never a local preview build.
+  error on every page. Decide on purpose, per project: turn Web
+  Analytics' automatic setup off, or allow it. To allow it, add the
+  *origin* `https://static.cloudflareinsights.com` to `script-src` —
+  Cloudflare's docs show the exact path `…/beacon.min.js`, but the
+  injected URL is versioned (`/beacon.min.js/v…`), which an exact-path
+  source doesn't match. On a site proxied through Cloudflare, the
+  automatic beacon reports to `/cdn-cgi/rum` on the same domain, so
+  `connect-src 'self'` covers it; a manually embedded beacon reports to
+  `cloudflareinsights.com` instead. (Cloudflare says Web Analytics is
+  free and collects no personal data, which matters for a privacy page.)
+  The dashboard setting stays the on/off switch, and allowing the origin
+  is harmless while it's off. Only a real browser against *production*
+  shows any of this, never a local preview build.
 
 ## Supply chain (npm, CI, and AI-assisted development)
 
