@@ -1014,7 +1014,21 @@ credentials in reach. Layers that worked here:
   (verified), so tightening N never breaks CI on an existing lockfile, and
   a security-fix PR whose lockfile holds a days-old version still
   installs. For a hand-installed emergency fix, `--min-release-age=0` on
-  that one command.
+  that one command. Two cautions when overriding it:
+  - **`npm audit fix` brings passengers.** It can also bump packages that
+    aren't on the advisory list, within their semver ranges, and with the
+    override those skip the age check too (seen: a dev tool's patch
+    release riding along with three security fixes). Read every version
+    change in the lockfile diff, not just the ones you asked for.
+  - **Vet each too-new version** before keeping it. Compare it with the
+    previous release: `npm view <pkg>@<v> _npmUser.name repository.url
+    scripts dist.attestations.provenance.predicateType dist.unpackedSize`
+    (same publisher and repo, no new install scripts, provenance if the
+    project normally has it, no big size jump). Then read the actual
+    change: `npm pack <pkg>@<old> <pkg>@<new> --min-release-age=0`,
+    extract both, and `diff -r` them. Watch for new network, filesystem,
+    `eval` or obfuscated code. The flag is needed there too if a
+    user-level `~/.npmrc` also sets the rule.
 - **Astro + Cloudflare: a wrangler bump alone leaves two wranglers.**
   `@cloudflare/vite-plugin` (pulled in by `@astrojs/cloudflare`) pins an
   *exact* wrangler version, so a Dependabot PR that bumps only your
