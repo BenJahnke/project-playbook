@@ -371,6 +371,12 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   never see it — with the caveat that an earlier step can still tamper
   with `node_modules` on disk, so the lockfile/script controls do most of
   the protecting.
+- **Give a fresh deploy a minute before trusting a failure.** Right after
+  `wrangler deploy` finishes, some requests are still served by the
+  previous version for a short while (seen: a check run about a minute
+  after the deploy reported the old CSP on one page and the new one on
+  the next). If a post-deploy check fails, re-run it before debugging;
+  when polling for a deploy, wait for the change on more than one URL.
 - Branching: since a `master` push triggers a real deploy, do day-to-day
   work on `develop` and merge into `master` (direct merge is fine for a
   single-developer project, no PR needed) only when ready to ship. No
