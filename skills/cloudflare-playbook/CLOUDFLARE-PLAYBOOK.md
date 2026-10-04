@@ -957,6 +957,23 @@ measures the wrong input.
   The dashboard setting stays the on/off switch, and allowing the origin
   is harmless while it's off. Only a real browser against *production*
   shows any of this, never a local preview build.
+- **Bot Fight Mode injects an *inline* script no hash can allow.** Its
+  JavaScript Detections add an inline `<script>` (it loads
+  `/cdn-cgi/challenge-platform/…`) that changes on every request, so a
+  hash-based CSP blocks it on every page: "Executing inline script
+  violates … script-src". On the free plan JavaScript Detections can't be
+  turned off separately from Bot Fight Mode. Cloudflare's documented fix
+  is a nonce: if the response's CSP header has `'nonce-…'` in
+  `script-src`, Cloudflare adds that nonce to the scripts it injects. So
+  have middleware add a fresh random nonce (16 bytes, base64) to
+  `script-src` on every response that has a CSP, merging into Astro's
+  header rather than replacing it and copying the response first.
+  Nothing of yours needs to use the nonce; Astro's scripts stay
+  hash-allowed. A per-request nonce gives no cover to an injected inline
+  script that doesn't know it. To test it locally, read the nonce from a
+  page's CSP header in a headless browser and inject one inline script
+  with it (should run) and one without (should stay blocked). Tested
+  2026-10-04.
 
 ## Supply chain (npm, CI, and AI-assisted development)
 
