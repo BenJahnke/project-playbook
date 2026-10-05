@@ -1013,8 +1013,12 @@ credentials in reach. Layers that worked here:
   `npm ci` installs whatever the lockfile says regardless of age
   (verified), so tightening N never breaks CI on an existing lockfile, and
   a security-fix PR whose lockfile holds a days-old version still
-  installs. For a hand-installed emergency fix, `--min-release-age=0` on
-  that one command. Two cautions when overriding it:
+  installs. For a hand-installed emergency fix, override it on that one
+  command — with the fix's own age in whole days (`--min-release-age=6`
+  for a 6-day-old fix) rather than `0` when the fix pulls in other
+  packages: npm still picks the fix, but nothing it resolves along the
+  way can be newer (used to land a toolchain bump whose pinned
+  dependencies were all a few days old). Two cautions when overriding it:
   - **`npm audit fix` brings passengers.** It can also bump packages that
     aren't on the advisory list, within their semver ranges, and with the
     override those skip the age check too (seen: a dev tool's patch
