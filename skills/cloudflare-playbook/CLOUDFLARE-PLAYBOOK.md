@@ -1171,11 +1171,15 @@ local dev + production) rather than just reading the code:
   2026-10-03), so declare `weight: "100 900"`. Commit each font's OFL text
   alongside it.
 
-- **A line break before a `{expression}` in Astro text can eat the
-  space.** `percentages are of the` + newline + `{count} requests`
-  rendered as "of the2 requests" (Astro 7). Keep the expression on the
-  same line as the word before it (`of the {count} requests`), or write
-  `{" "}` explicitly. Check rendered text, not the template.
+- **A line break next to a `{expression}` or an inline element in Astro
+  text can eat the space.** `percentages are of the` + newline +
+  `{count} requests` rendered as "of the2 requests" (Astro 7), and the
+  same happens on either side of an inline tag: `each place` + newline +
+  `<strong>scored</strong>` + newline + `with` lost both spaces. Keep the
+  expression or tag on the same line as the words around it
+  (`of the {count} requests`), or write `{" "}` explicitly. Breaking a
+  line between two plain words is fine. Check rendered text, not the
+  template.
 - **Header/nav flex layouts need an explicit mobile breakpoint.** A plain
   `display: flex; justify-content: space-between` on a header row looks
   fine at desktop widths and silently overflows horizontally on real phone
