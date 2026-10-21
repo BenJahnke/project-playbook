@@ -193,6 +193,11 @@ Two side effects of the `secrets` block worth knowing:
   non-secret value (e.g. a test site key), choose it in code under
   `import.meta.env.DEV`.
 
+**`.dev.vars` doesn't unescape `\"`.** A JSON value written as
+`KEY="{\"a\":1}"` reaches the Worker with the backslashes still in it and
+fails `JSON.parse`. Wrap JSON in single quotes instead: `KEY='{"a":1}'`
+(tested 2026-10-20, wrangler 4.148).
+
 **`routes` and `workers_dev` interact.** Adding a `routes` block (to attach
 a custom domain) disables the `<name>.<subdomain>.workers.dev` test URL by
 default. If you want to keep both the custom domain and the workers.dev URL
@@ -408,7 +413,11 @@ HTMLRewriter's `Element` or on `CacheStorage`.
   open one log entry after enabling and look. Adding
   `"logs": { "invocation_logs": false }` under `observability` keeps only
   what the code logs, but the docs don't confirm uncaught exceptions are
-  still captured that way.
+  still captured that way. Worth it when a URL can carry a secret (an
+  access code in a download link's query string): the invocation log
+  shows the request URL, and the docs don't say the query is dropped.
+  Wrap the handler in `try`/`catch` and log errors yourself, so turning
+  them off loses nothing.
 - **Log the reason on every fail-closed path** — a bot check's error
   codes, an auth rejection — but never secrets, tokens, or submitted form
   content. A security check that rejects silently can't be diagnosed in
@@ -1071,6 +1080,13 @@ credentials in reach. Layers that worked here:
   user profile, readable by any install script or `npx`'d package you run.
   Once CI deploys with its own scoped token, `wrangler logout` locally and
   log in only when you need a manual remote operation.
+- **Log in with only the scopes the job needs.** `wrangler login --scopes
+  account:read user:read workers:write workers_scripts:write` was enough
+  to create an R2 bucket, put and delete objects remotely, deploy a Worker
+  and set its secrets (tested 2026-10-20, wrangler 4.148); `wrangler login
+  --scopes-list` shows the rest. Wrangler adds `offline_access` itself, so
+  the token keeps refreshing until `wrangler logout`. Keep both as npm
+  scripts (`"login"`, `"logout"`) so the narrow form is the easy one.
 - **Don't reach for `npm audit fix --force` reflexively** — its "fix" can
   be a multi-year downgrade of the package (here it proposed drizzle-kit
   0.18.1 to fix a dev-only transitive advisory). Check whether the
