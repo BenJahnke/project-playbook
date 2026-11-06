@@ -11,6 +11,12 @@ Two kinds of files, with opposite lifecycles:
 | [`skills/cloudflare-playbook/`](skills/cloudflare-playbook/) | [CLOUDFLARE-PLAYBOOK.md](skills/cloudflare-playbook/CLOUDFLARE-PLAYBOOK.md): patterns, gotchas and a security checklist for small sites on Cloudflare Workers (Astro, D1, R2, KV, Access, injection defenses, CI/CD, supply chain) | **Referenced, never copied.** Every project reads the latest version, so a fix made here reaches all of them. |
 | [`skills/new-project/`](skills/new-project/) | A [template](skills/new-project/template/) for a new project: doc skeletons (`AGENTS.md`, `PLAN`, `ARCHITECTURE`, `FEATURES`, `DESIGN`, `SECURITY-MODEL`, a `proposals/` folder) and baseline config (an `.npmrc` supply-chain policy, Dependabot, Claude Code permission rules, a session-start hook that lists new playbook changes, and for Cloudflare projects a deploy workflow and security headers) | **Copied once**, then the project owns it and it diverges on purpose. |
 
+A third folder, [`skills/security-audit/`](skills/security-audit/), is
+Cloudflare's [security-audit skill](https://github.com/cloudflare/security-audit-skill)
+vendored unmodified (MIT, license kept in the folder; see its `UPSTREAM.md`
+for the pinned commit). It runs a multi-phase, source-first security audit of a
+codebase and is the one to reach for before a project goes live.
+
 The template's `.github/` files live under `skills/new-project/template/`,
 so GitHub never runs them here — only a repo's root `.github/` is active.
 
@@ -28,6 +34,7 @@ $clone = "<path to your clone>"
 New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
 New-Item -ItemType Junction -Path "$HOME\.claude\skills\cloudflare-playbook" -Target "$clone\skills\cloudflare-playbook"
 New-Item -ItemType Junction -Path "$HOME\.claude\skills\new-project" -Target "$clone\skills\new-project"
+New-Item -ItemType Junction -Path "$HOME\.claude\skills\security-audit" -Target "$clone\skills\security-audit"
 ```
 
 **macOS / Linux:**
@@ -36,6 +43,7 @@ New-Item -ItemType Junction -Path "$HOME\.claude\skills\new-project" -Target "$c
 mkdir -p ~/.claude/skills
 ln -s "<path to your clone>/skills/cloudflare-playbook" ~/.claude/skills/cloudflare-playbook
 ln -s "<path to your clone>/skills/new-project" ~/.claude/skills/new-project
+ln -s "<path to your clone>/skills/security-audit" ~/.claude/skills/security-audit
 ```
 
 Because they're links, edits in the clone take effect immediately, and
@@ -61,4 +69,5 @@ emails. See [AGENTS.md](AGENTS.md).
 ## License
 
 [CC0 1.0](LICENSE) — public domain. Use anything here, no attribution
-needed.
+needed. The exception is `skills/security-audit/`, which is Cloudflare's work
+under the [MIT license](skills/security-audit/LICENSE).
