@@ -101,6 +101,11 @@ admin bypass.
       `npm run`; local `wrangler` logged out when not in use
       ([Supply chain](#supply-chain-npm-ci-and-ai-assisted-development))
 
+**Review**
+- [ ] Before launch and after big changes: manual pass over the checklist
+      above, then a full audit with the security-audit skill
+      ([Security review](#security-review))
+
 ## Stack
 
 - **Astro** with the official `@astrojs/cloudflare` adapter, targeting
@@ -1150,6 +1155,41 @@ Recommended setup, all free on private repos:
   `@dependabot ignore this major version`, `@dependabot ignore this
   dependency`. Run history and a manual "Check for updates" button live
   under Insights → Dependency graph → Dependabot.
+
+## Security review
+
+The checklist and the "Auditing a project" paragraph under
+[Injection & input handling](#injection--input-handling) cover what this
+stack is known to get wrong. For a broader, systematic pass, use Cloudflare's
+[security-audit skill](https://github.com/cloudflare/security-audit-skill)
+(MIT). It's a coding-agent skill that runs a multi-phase audit — recon,
+coverage-led hunting, a fresh agent trying to disprove each candidate, then a
+verified report — so findings come with source evidence instead of a
+checklist's yes/no. It's linked, not copied here, so you always get its latest
+version.
+
+- **Install it separately from this playbook** (as of 2026-11-05, per its
+  README; check there if it fails):
+  `npx skills add https://github.com/cloudflare/security-audit-skill --skill security-audit`
+  (add `--global` for a user-level install). Run it with the install
+  approval described in [Supply chain](#supply-chain-npm-ci-and-ai-assisted-development),
+  since `npx` is exactly the command that policy asks you to gate.
+- **Run it against the project, not this repo.** Ask the agent to "security
+  audit this codebase". It has a lighter guidance mode for focused questions
+  and only runs the full workflow on an explicit audit request.
+- **Keep the output out of the repo and out of this one.** Its reports
+  default to `~/security-audit-skill/<repo-name>/run-<N>`, outside the
+  project. They name real routes and bindings, so never paste them into this
+  public playbook; distill what generalizes into project-agnostic wording
+  instead.
+- **Sandbox it.** It wants an OS-enforced sandbox (no external network,
+  sanitized environment, writes only to scratch paths) before it executes
+  target-controlled code; without one it keeps the lead as
+  `needs_validation` rather than running anything. Treat that as a feature.
+- **Run it more than once.** Its authors report a single run finds roughly
+  half of what repeated runs find, and runs build on prior ledgers.
+- **Add what it finds to this playbook** if it applies to any project on the
+  stack, and to the checklist if it's security-relevant.
 
 ## Email
 

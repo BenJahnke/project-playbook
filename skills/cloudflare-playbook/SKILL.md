@@ -11,7 +11,8 @@ whole file; it's organized by topic.
 
 - **Starting a project, or reviewing one's security**: begin with its
   "Security checklist for a new project" — each line links to the section
-  with the reasoning.
+  with the reasoning. For a deeper audit, "Security review" points to
+  Cloudflare's security-audit skill.
 - **Writing a route, form, redirect or email that touches user input**:
   read "Injection & input handling" first. These defenses are meant to be
   applied every time, not saved for an audit.
